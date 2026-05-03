@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>角の大きさをまなぼう！</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: "Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Meiryo", sans-serif;
+    background: linear-gradient(135deg, #ffe0ec 0%, #fff5cc 50%, #d4f5ee 100%);
+    color: #3d3d5c;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  #app {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px;
+  }
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+  /* タイトル画面 */
+  .title-card {
+    background: white;
+    border-radius: 30px;
+    padding: 40px 30px;
+    box-shadow: 0 10px 40px rgba(255,107,157,0.2);
+    text-align: center;
+  }
+  .main-title {
+    font-size: clamp(36px, 6.5vw, 56px);
+    font-weight: 900;
+    color: #ff6b9d;
+    margin-bottom: 10px;
+    text-shadow: 3px 3px 0 #ffd93d;
+    letter-spacing: 2px;
+  }
+  .sub-title {
+    font-size: clamp(20px, 3vw, 26px);
+    color: #6c7293;
+    margin-bottom: 30px;
+    font-weight: 700;
+  }
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+  }
+  .menu-btn {
+    border: none;
+    border-radius: 24px;
+    padding: 30px 20px;
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    color: white;
+    font-family: inherit;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+  }
+  .menu-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+  .menu-btn .emoji { display: block; font-size: 1.8em; margin-bottom: 8px; }
+  .btn-pink { background: linear-gradient(135deg, #ff6b9d, #ff9eb5); }
+  .btn-yellow { background: linear-gradient(135deg, #ffb845, #ffd93d); }
+  .btn-cyan { background: linear-gradient(135deg, #4ecdc4, #44a8e0); }
+  .btn-purple { background: linear-gradient(135deg, #a78bfa, #c084fc); }
+
+  /* 共通：レッスンカード */
+  .lesson-card {
+    background: white;
+    border-radius: 28px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+  }
+  .lesson-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .lesson-title {
+    font-size: clamp(24px, 4vw, 34px);
+    font-weight: 900;
+    color: #ff6b9d;
+  }
+  .back-btn {
+    background: #ffd93d;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-size: 19px;
+    font-weight: 800;
+    cursor: pointer;
+    color: #3d3d5c;
+    font-family: inherit;
+    box-shadow: 0 4px 0 #d4a800;
+  }
+  .back-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #d4a800; }
+
+  .speech {
+    background: #fff5cc;
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    font-size: clamp(20px, 3vw, 24px);
+    line-height: 1.8;
+    position: relative;
+    border: 3px solid #ffd93d;
+  }
+  .speech.pink { background: #ffe0ec; border-color: #ff9eb5; }
+  .speech.cyan { background: #d4f5ee; border-color: #4ecdc4; }
+
+  .stage {
+    background: #f8f9fc;
+    border-radius: 20px;
+    padding: 16px;
+    text-align: center;
+    margin: 14px 0;
+    border: 2px dashed #c8cee8;
+  }
+  svg.angle-svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  .angle-display {
+    font-size: clamp(34px, 6vw, 50px);
+    font-weight: 900;
+    color: #ff6b9d;
+    margin: 10px 0;
+  }
+  .angle-display .num { display: inline-block; min-width: 90px; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .ctrl-btn {
+    background: #4ecdc4;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 26px;
+    font-size: clamp(18px, 2.6vw, 22px);
+    font-weight: 800;
+    color: white;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 0 #2c9a92;
+  }
+  .ctrl-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #2c9a92; }
+  .ctrl-btn.pink { background: #ff6b9d; box-shadow: 0 4px 0 #c64579; }
+  .ctrl-btn.pink:active { box-shadow: 0 2px 0 #c64579; }
+  .ctrl-btn.purple { background: #a78bfa; box-shadow: 0 4px 0 #7959d8; }
+  .ctrl-btn.purple:active { box-shadow: 0 2px 0 #7959d8; }
+
+  .quiz-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .quiz-option {
+    background: white;
+    border: 4px solid #c8cee8;
+    border-radius: 18px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    text-align: center;
+    font-size: clamp(18px, 2.6vw, 22px);
+    font-weight: 700;
+    color: #3d3d5c;
+  }
+  .quiz-option:active { transform: scale(0.97); }
+  .quiz-option.correct { border-color: #4ecdc4; background: #d4f5ee; animation: pop 0.4s; }
+  .quiz-option.wrong { border-color: #ff6b9d; background: #ffe0ec; animation: shake 0.4s; }
+  .quiz-option.disabled { pointer-events: none; opacity: 0.6; }
+  .quiz-option .label {
+    display: inline-block;
+    background: #ffd93d;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    font-weight: 900;
+    color: #3d3d5c;
+    margin-bottom: 10px;
+    font-size: 22px;
+  }
+
+  .feedback {
+    text-align: center;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 900;
+    margin: 14px 0;
+    min-height: 44px;
+  }
+  .feedback.ok { color: #4ecdc4; animation: bounce 0.6s; }
+  .feedback.ng { color: #ff6b9d; }
+
+  .score-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, #ffd93d, #ff9eb5);
+    color: white;
+    border-radius: 50px;
+    padding: 12px 24px;
+    margin-bottom: 16px;
+    font-weight: 800;
+    font-size: clamp(18px, 2.6vw, 22px);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+  }
+  .progress {
+    background: rgba(255,255,255,0.5);
+    border-radius: 50px;
+    height: 14px;
+    flex: 1;
+    margin: 0 14px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: white;
+    border-radius: 50px;
+    transition: width 0.4s;
+  }
+
+  .result-card {
+    background: white;
+    border-radius: 30px;
+    padding: 36px 24px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  }
+  .result-card .big {
+    font-size: clamp(50px, 10vw, 84px);
+    font-weight: 900;
+    color: #ff6b9d;
+    text-shadow: 3px 3px 0 #ffd93d;
+    margin: 14px 0;
+  }
+  .stars { font-size: clamp(40px, 7vw, 60px); margin: 10px 0; letter-spacing: 6px; }
+
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .compare-row .stage { margin: 0; }
+
+  .hint {
+    font-size: clamp(16px, 2.4vw, 20px);
+    color: #6c7293;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* ====== iPad横画面（ランドスケープ）対応 ====== */
+  @media (orientation: landscape) {
+    #app {
+      padding: 12px max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left));
+    }
+    .screen { max-width: 1100px; }
+
+    /* タイトル画面：横並びレイアウト */
+    .title-card { padding: 24px 32px; }
+    .main-title { font-size: clamp(30px, 4.8vw, 46px); margin-bottom: 6px; }
+    .sub-title { font-size: clamp(17px, 2.2vw, 22px); margin-bottom: 16px; }
+    .title-card > div[style*="font-size: 56px"] { font-size: 44px !important; margin: 8px 0 !important; }
+    .menu-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .menu-btn { padding: 20px 12px; font-size: clamp(17px, 2.2vw, 22px); }
+    .menu-btn .emoji { font-size: 1.5em; margin-bottom: 4px; }
+
+    /* レッスンカード共通：詰めて表示 */
+    .lesson-card { padding: 18px 24px; margin-bottom: 12px; border-radius: 22px; }
+    .lesson-header { margin-bottom: 12px; }
+    .lesson-title { font-size: clamp(22px, 3vw, 30px); }
+    .speech {
+      padding: 14px 20px;
+      margin-bottom: 12px;
+      font-size: clamp(17px, 2.3vw, 21px);
+      line-height: 1.7;
+      border-radius: 18px;
+    }
+    .stage { padding: 12px; margin: 10px 0; border-radius: 18px; }
+    svg.angle-svg { max-height: 48vh; }
+    .angle-display { font-size: clamp(28px, 4.5vw, 42px); margin: 6px 0; }
+    .controls { margin: 8px 0; gap: 8px; }
+    .ctrl-btn { padding: 11px 22px; font-size: clamp(16px, 2.1vw, 20px); }
+    .quiz-options { gap: 10px; margin-top: 10px; }
+    .quiz-option { padding: 14px; border-width: 3px; font-size: clamp(16px, 2.2vw, 20px); }
+    .quiz-option .label {
+      width: 38px; height: 38px; line-height: 38px;
+      font-size: 19px; margin-bottom: 6px;
+    }
+    .feedback { font-size: clamp(20px, 3.2vw, 26px); margin: 8px 0; min-height: 36px; }
+    .score-bar { padding: 10px 20px; margin-bottom: 12px; font-size: clamp(16px, 2.2vw, 20px); }
+    .progress { height: 12px; }
+    .back-btn { padding: 10px 22px; font-size: 17px; }
+    .hint { font-size: clamp(15px, 2vw, 18px); }
+
+    /* 結果画面 */
+    .result-card { padding: 26px 24px; }
+    .result-card .big { font-size: clamp(42px, 7.5vw, 66px); margin: 10px 0; }
+    .stars { font-size: clamp(34px, 6vw, 52px); margin: 8px 0; }
+
+    /* レッスン1：説明 + アニメSVGを左右並びに */
+    #screen-lesson1 .stage { display: flex; flex-direction: column; align-items: center; }
+
+    /* レッスン2のドラッグSVGも高さ制限 */
+    #svg-drag { max-height: 52vh; }
+  }
+
+  /* ====== 横画面で高さがとくに狭い時（iPad mini等） ====== */
+  @media (orientation: landscape) and (max-height: 720px) {
+    svg.angle-svg { max-height: 42vh; }
+    #svg-drag { max-height: 46vh; }
+    .speech { font-size: 13px; line-height: 1.5; padding: 8px 14px; }
+    .menu-btn { padding: 14px 10px; }
+    .ctrl-btn { padding: 8px 14px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル画面 -->
+  <div id="screen-home" class="screen active">
+    <div class="title-card">
+      <div class="main-title">角の大きさをまなぼう！</div>
+      <div class="sub-title">小学４年生　さんすう　〜かどのおおきさ〜</div>
+      <div style="font-size: 56px; margin: 20px 0;">📐✨</div>
+      <div class="menu-grid">
+        <button class="menu-btn btn-pink" onclick="goto('lesson1')">
+          <span class="emoji">🌀</span>1. 角ってなに？
+        </button>
+        <button class="menu-btn btn-yellow" onclick="goto('lesson2')">
+          <span class="emoji">🤏</span>2. 自分でうごかそう
+        </button>
+        <button class="menu-btn btn-cyan" onclick="goto('lesson3')">
+          <span class="emoji">⚖️</span>3. 大きさをくらべよう
+        </button>
+        <button class="menu-btn btn-purple" onclick="startQuiz()">
+          <span class="emoji">🎯</span>4. クイズに挑戦！
+        </button>
+      </div>
+      <div style="margin-top: 24px; font-size: 14px; color: #8b91b3;">
+        スワイプ・タップでサクサク学習できるよ！
+      </div>
+    </div>
+  </div>
+
+  <!-- レッスン1: 角ってなに？ -->
+  <div id="screen-lesson1" class="screen">
+    <div class="lesson-card">
+      <div class="lesson-header">
+        <div class="lesson-title">🌀 角ってなに？</div>
+        <button class="back-btn" onclick="goto('home')">← もどる</button>
+      </div>
+      <div class="speech">
+        <strong>「角（かく）」</strong>は、 <strong>一つの点から出ている2本の直線が作る形</strong>のことだよ。<br>
+        点のところを<strong>頂点（ちょうてん）</strong>、線を<strong>辺（へん）</strong>というよ。
+      </div>
+      <div class="stage">
+        <svg class="angle-svg" viewBox="0 0 400 280" id="svg-intro">
+          <!-- 固定の辺 -->
+          <line x1="200" y1="220" x2="380" y2="220" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round"/>
+          <!-- 動く辺 -->
+          <line id="intro-arm" x1="200" y1="220" x2="380" y2="220" stroke="#4ecdc4" stroke-width="6" stroke-linecap="round"/>
+          <!-- 弧 -->
+          <path id="intro-arc" d="" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+          <!-- 頂点 -->
+          <circle cx="200" cy="220" r="8" fill="#3d3d5c"/>
+          <text x="200" y="258" text-anchor="middle" font-size="20" font-weight="bold" fill="#3d3d5c">頂点</text>
+          <text id="intro-label" x="200" y="200" text-anchor="middle" font-size="28" font-weight="900" fill="#ff6b9d">0°</text>
+        </svg>
+        <div class="controls">
+          <button class="ctrl-btn pink" onclick="animateIntro()">▶ アニメーションを見る</button>
+        </div>
+      </div>
+      <div class="speech cyan">
+        ✨ <strong>角の大きさは「回転の量」</strong>でつたえるよ。<br>
+        単位は <strong>度（°）</strong>。直角は <strong>90°</strong> だね！
+      </div>
+      <div class="stage">
+        <svg class="angle-svg" viewBox="0 0 400 200" id="svg-examples">
+          <!-- 30度 -->
+          <g transform="translate(70,160)">
+            <line x1="0" y1="0" x2="80" y2="0" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="0" x2="69.3" y2="-40" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 30 0 A 30 30 0 0 0 25.98 -15" fill="none" stroke="#ffb845" stroke-width="3"/>
+            <circle r="5" fill="#3d3d5c"/>
+            <text x="40" y="30" text-anchor="middle" font-size="26" font-weight="900" fill="#ff6b9d">30°</text>
+          </g>
+          <!-- 90度 -->
+          <g transform="translate(200,160)">
+            <line x1="0" y1="0" x2="80" y2="0" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="0" x2="0" y2="-80" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 25 0 L 25 -25 L 0 -25" fill="none" stroke="#ffb845" stroke-width="3"/>
+            <circle r="5" fill="#3d3d5c"/>
+            <text x="40" y="30" text-anchor="middle" font-size="26" font-weight="900" fill="#ff6b9d">90°</text>
+          </g>
+          <!-- 135度 -->
+          <g transform="translate(330,160)">
+            <line x1="0" y1="0" x2="80" y2="0" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="0" x2="-56.6" y2="-56.6" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 30 0 A 30 30 0 0 0 -21.2 -21.2" fill="none" stroke="#ffb845" stroke-width="3"/>
+            <circle r="5" fill="#3d3d5c"/>
+            <text x="-10" y="30" text-anchor="middle" font-size="26" font-weight="900" fill="#ff6b9d">135°</text>
+          </g>
+        </svg>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn pink" onclick="goto('lesson2')">つぎへ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- レッスン2: 自分でうごかそう -->
+  <div id="screen-lesson2" class="screen">
+    <div class="lesson-card">
+      <div class="lesson-header">
+        <div class="lesson-title">🤏 自分でうごかそう</div>
+        <button class="back-btn" onclick="goto('home')">← もどる</button>
+      </div>
+      <div class="speech pink">
+        🟢 <strong>緑の丸</strong>を指でドラッグして、辺をぐるっと動かしてみよう！<br>
+        どれくらい回ったかが、角の大きさだよ。<strong>0°〜360°</strong>まで自由に回せるよ！
+      </div>
+      <div class="stage">
+        <svg class="angle-svg" viewBox="0 0 400 440" id="svg-drag">
+          <!-- 補助の円（回転の目安） -->
+          <circle cx="200" cy="220" r="180" fill="none" stroke="#e8eaf6" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="200" y1="220" x2="380" y2="220" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round"/>
+          <line id="drag-arm" x1="200" y1="220" x2="380" y2="220" stroke="#4ecdc4" stroke-width="6" stroke-linecap="round"/>
+          <path id="drag-arc" d="" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+          <circle cx="200" cy="220" r="8" fill="#3d3d5c"/>
+          <circle id="drag-handle" cx="380" cy="220" r="22" fill="#4ecdc4" stroke="white" stroke-width="4"/>
+        </svg>
+        <div class="angle-display">📏 <span class="num" id="drag-value">0</span>°</div>
+        <div class="hint">ヒント：90°は<strong>直角</strong>、180°は<strong>2直角</strong>、270°は<strong>3直角</strong>、360°で<strong>1回転</strong>！</div>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn" onclick="setDragAngle(45)">45°</button>
+        <button class="ctrl-btn" onclick="setDragAngle(90)">90°</button>
+        <button class="ctrl-btn" onclick="setDragAngle(180)">180°</button>
+        <button class="ctrl-btn" onclick="setDragAngle(270)">270°</button>
+        <button class="ctrl-btn" onclick="setDragAngle(360)">360°</button>
+        <button class="ctrl-btn purple" onclick="setDragAngle(0)">リセット</button>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn pink" onclick="goto('lesson3')">つぎへ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- レッスン3: 大きさをくらべよう -->
+  <div id="screen-lesson3" class="screen">
+    <div class="lesson-card">
+      <div class="lesson-header">
+        <div class="lesson-title">⚖️ 大きさをくらべよう</div>
+        <button class="back-btn" onclick="goto('home')">← もどる</button>
+      </div>
+      <div class="speech">
+        ⚠️ <strong>角の大きさは、辺の長さでは決まらない</strong>よ！<br>
+        大事なのは「<strong>どれくらい開いているか</strong>」なんだ。
+      </div>
+      <div class="stage">
+        <div class="compare-row">
+          <div>
+            <svg class="angle-svg" viewBox="0 0 200 180">
+              <line x1="40" y1="140" x2="180" y2="140" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+              <line x1="40" y1="140" x2="161.2" y2="70" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 80 140 A 40 40 0 0 0 74.6 119.6" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+              <circle cx="40" cy="140" r="6" fill="#3d3d5c"/>
+              <text x="100" y="170" text-anchor="middle" font-size="26" font-weight="900" fill="#ff6b9d">A: 30°</text>
+            </svg>
+          </div>
+          <div>
+            <svg class="angle-svg" viewBox="0 0 200 180">
+              <line x1="40" y1="140" x2="120" y2="140" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+              <line x1="40" y1="140" x2="109.3" y2="100" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 80 140 A 40 40 0 0 0 74.6 119.6" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+              <circle cx="40" cy="140" r="6" fill="#3d3d5c"/>
+              <text x="100" y="170" text-anchor="middle" font-size="26" font-weight="900" fill="#ff6b9d">B: 30°</text>
+            </svg>
+          </div>
+        </div>
+        <div class="hint">辺の長さがちがっても、<strong>開きが同じなら角の大きさは同じ</strong>！</div>
+      </div>
+      <div class="speech cyan">
+        🔍 <strong>クイズ：</strong>下のAとB、どちらの角が大きいかな？
+      </div>
+      <div class="stage">
+        <div class="compare-row">
+          <div>
+            <svg class="angle-svg" viewBox="0 0 200 180">
+              <line x1="40" y1="140" x2="180" y2="140" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+              <line x1="40" y1="140" x2="89.5" y2="46.7" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 80 140 A 40 40 0 0 0 54.16 105.74" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+              <circle cx="40" cy="140" r="6" fill="#3d3d5c"/>
+              <text x="100" y="170" text-anchor="middle" font-size="28" font-weight="900" fill="#ff6b9d">A</text>
+            </svg>
+          </div>
+          <div>
+            <svg class="angle-svg" viewBox="0 0 200 180">
+              <line x1="40" y1="140" x2="100" y2="140" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+              <line x1="40" y1="140" x2="92.4" y2="110" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 80 140 A 40 40 0 0 0 74.6 119.6" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+              <circle cx="40" cy="140" r="6" fill="#3d3d5c"/>
+              <text x="100" y="170" text-anchor="middle" font-size="28" font-weight="900" fill="#ff6b9d">B</text>
+            </svg>
+          </div>
+        </div>
+        <div class="quiz-options">
+          <button class="quiz-option" onclick="checkSimple(this, true)">
+            <div class="label">A</div>
+            <div>Aの方が大きい</div>
+          </button>
+          <button class="quiz-option" onclick="checkSimple(this, false)">
+            <div class="label">B</div>
+            <div>Bの方が大きい</div>
+          </button>
+        </div>
+        <div id="simple-feedback" class="feedback"></div>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn purple" onclick="startQuiz()">🎯 クイズにチャレンジ！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- クイズ画面 -->
+  <div id="screen-quiz" class="screen">
+    <div class="lesson-card">
+      <div class="lesson-header">
+        <div class="lesson-title">🎯 角の大きさクイズ</div>
+        <button class="back-btn" onclick="goto('home')">← もどる</button>
+      </div>
+      <div class="score-bar">
+        <span>第<span id="quiz-num">1</span>問 / <span id="quiz-total">5</span></span>
+        <div class="progress"><div class="progress-fill" id="quiz-progress" style="width: 20%"></div></div>
+        <span>⭐ <span id="quiz-score">0</span></span>
+      </div>
+      <div id="quiz-question" class="speech pink"></div>
+      <div id="quiz-stage" class="stage"></div>
+      <div id="quiz-options" class="quiz-options"></div>
+      <div id="quiz-feedback" class="feedback"></div>
+      <div class="controls" id="quiz-next-wrap" style="display:none;">
+        <button class="ctrl-btn pink" onclick="nextQuiz()">つぎの問題 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="screen-result" class="screen">
+    <div class="result-card">
+      <div style="font-size: 60px;">🏆</div>
+      <div class="big"><span id="final-score">0</span> / 5</div>
+      <div class="stars" id="final-stars">⭐⭐⭐</div>
+      <div id="final-message" style="font-size: clamp(18px, 3vw, 24px); font-weight: 800; margin: 16px 0; color: #4ecdc4;"></div>
+      <div class="controls" style="margin-top: 24px;">
+        <button class="ctrl-btn purple" onclick="startQuiz()">🔄 もう一回</button>
+        <button class="ctrl-btn pink" onclick="goto('home')">🏠 ホームへ</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==================== 画面切り替え ====================
+function goto(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('app').scrollTop = 0;
+}
+
+// ==================== レッスン1: 角の説明アニメーション ====================
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  // angle in degrees, 0 = right, increases counterclockwise (we use clockwise for SVG)
+  if (endAngle - startAngle >= 359.9) {
+    // ほぼ1回転は完全な円として描画
+    return `M ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} Z`;
+  }
+  const start = polar(cx, cy, r, endAngle);
+  const end = polar(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+  return `M ${cx} ${cy} L ${end.x} ${end.y} A ${r} ${r} 0 ${largeArc} 0 ${start.x} ${start.y} Z`;
+}
+function polar(cx, cy, r, angleDeg) {
+  // 0 deg points right, going up = positive (so subtract)
+  const rad = (angleDeg) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+}
+
+function setIntroAngle(deg) {
+  const cx = 200, cy = 220, r = 180;
+  const p = polar(cx, cy, r, deg);
+  document.getElementById('intro-arm').setAttribute('x2', p.x);
+  document.getElementById('intro-arm').setAttribute('y2', p.y);
+  const arcR = 50;
+  document.getElementById('intro-arc').setAttribute('d', deg < 0.5 ? '' : describeArc(cx, cy, arcR, 0, deg));
+  document.getElementById('intro-label').textContent = Math.round(deg) + '°';
+  // Position label
+  const labelP = polar(cx, cy, 75, deg / 2);
+  document.getElementById('intro-label').setAttribute('x', labelP.x);
+  document.getElementById('intro-label').setAttribute('y', labelP.y);
+}
+let introAnim = null;
+function animateIntro() {
+  if (introAnim) cancelAnimationFrame(introAnim);
+  let start = null;
+  const duration = 3000;
+  function step(t) {
+    if (!start) start = t;
+    const progress = Math.min((t - start) / duration, 1);
+    // Go 0 -> 180 -> 0
+    let deg;
+    if (progress < 0.5) deg = (progress * 2) * 180;
+    else deg = (1 - (progress - 0.5) * 2) * 180;
+    setIntroAngle(deg);
+    if (progress < 1) introAnim = requestAnimationFrame(step);
+    else introAnim = null;
+  }
+  introAnim = requestAnimationFrame(step);
+}
+setIntroAngle(0);
+
+// ==================== レッスン2: ドラッグで角度操作 ====================
+const dragSvg = document.getElementById('svg-drag');
+const dragHandle = document.getElementById('drag-handle');
+const dragArm = document.getElementById('drag-arm');
+const dragArc = document.getElementById('drag-arc');
+const dragValue = document.getElementById('drag-value');
+let currentDragAngle = 0;
+
+function updateDrag(deg) {
+  currentDragAngle = deg;
+  const cx = 200, cy = 220, r = 180;
+  const p = polar(cx, cy, r, deg);
+  dragArm.setAttribute('x2', p.x);
+  dragArm.setAttribute('y2', p.y);
+  dragHandle.setAttribute('cx', p.x);
+  dragHandle.setAttribute('cy', p.y);
+  const arcR = 55;
+  dragArc.setAttribute('d', deg < 0.5 ? '' : describeArc(cx, cy, arcR, 0, deg));
+  dragValue.textContent = Math.round(deg);
+}
+
+function getSvgPoint(svg, evt) {
+  const pt = svg.createSVGPoint();
+  const touch = evt.touches ? evt.touches[0] : evt;
+  pt.x = touch.clientX;
+  pt.y = touch.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+// 指の位置から「生」の角度（0〜360°）を求める
+function rawAngleFromPoint(p) {
+  const dx = p.x - 200;
+  const dy = 220 - p.y;
+  let raw = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (raw < 0) raw += 360;
+  return raw;
+}
+
+let dragging = false;
+let lastRaw = 0;
+function startDrag(e) {
+  dragging = true;
+  e.preventDefault();
+  const p = getSvgPoint(dragSvg, e);
+  lastRaw = rawAngleFromPoint(p);
+}
+function doDrag(e) {
+  if (!dragging) return;
+  e.preventDefault();
+  const p = getSvgPoint(dragSvg, e);
+  const raw = rawAngleFromPoint(p);
+  // 0/360の境目を超えてもなめらかに動くように差分で計算
+  let diff = raw - lastRaw;
+  if (diff > 180) diff -= 360;
+  else if (diff < -180) diff += 360;
+  lastRaw = raw;
+  let newAngle = currentDragAngle + diff;
+  // 0〜360°の範囲に制限
+  if (newAngle < 0) newAngle = 0;
+  if (newAngle > 360) newAngle = 360;
+  updateDrag(newAngle);
+}
+function endDrag() { dragging = false; }
+
+dragHandle.addEventListener('mousedown', startDrag);
+dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+dragSvg.addEventListener('mousemove', doDrag);
+dragSvg.addEventListener('touchmove', doDrag, { passive: false });
+window.addEventListener('mouseup', endDrag);
+window.addEventListener('touchend', endDrag);
+
+// アニメーションでセット
+function setDragAngle(target) {
+  const start = currentDragAngle;
+  const startTime = performance.now();
+  const dur = 600;
+  function step(t) {
+    const p = Math.min((t - startTime) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    updateDrag(start + (target - start) * ease);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+updateDrag(0);
+
+// ==================== レッスン3: シンプルな比較クイズ ====================
+function checkSimple(el, isA) {
+  const buttons = el.parentElement.querySelectorAll('.quiz-option');
+  buttons.forEach(b => b.classList.add('disabled'));
+  const fb = document.getElementById('simple-feedback');
+  // A is bigger (60° vs 30°)
+  if (isA) {
+    el.classList.add('correct');
+    fb.className = 'feedback ok';
+    fb.textContent = '🎉 せいかい！Aの方が開いているね';
+  } else {
+    el.classList.add('wrong');
+    fb.className = 'feedback ng';
+    fb.textContent = '😢 ざんねん。よく見てみよう！';
+    buttons[0].classList.add('correct');
+  }
+}
+
+// ==================== クイズ ====================
+const QUIZ_DATA = [
+  {
+    type: 'compare',
+    question: '🤔 どちらの角が大きい？',
+    angles: [60, 30],
+    answer: 0,
+    explain: '60°の方が大きく開いているね！'
+  },
+  {
+    type: 'compare-trick',
+    question: '🤔 辺の長さにごまかされないで！どちらの角が大きい？',
+    angles: [40, 70],
+    armLengths: [100, 50], // A has long arms but smaller angle
+    answer: 1,
+    explain: '辺が短くても、開きが大きい方が角は大きいよ！'
+  },
+  {
+    type: 'identify',
+    question: '🤔 これは何度の角に近い？',
+    angles: [90],
+    options: ['30°', '60°', '90°', '120°'],
+    answer: 2,
+    explain: 'まっすぐL字型は直角（90°）！'
+  },
+  {
+    type: 'identify',
+    question: '🤔 これは何度の角に近い？',
+    angles: [180],
+    options: ['90°', '180°', '270°', '360°'],
+    answer: 1,
+    explain: 'まっすぐな線は180°（2直角）だよ！'
+  },
+  {
+    type: 'pickbig',
+    question: '🤔 一番大きい角はどれ？',
+    angles: [45, 120, 90, 30],
+    answer: 1,
+    explain: '120°が一番大きく開いているね！'
+  }
+];
+
+let quizIndex = 0;
+let quizScore = 0;
+
+function startQuiz() {
+  quizIndex = 0;
+  quizScore = 0;
+  goto('quiz');
+  showQuizQuestion();
+}
+
+function showQuizQuestion() {
+  const q = QUIZ_DATA[quizIndex];
+  document.getElementById('quiz-num').textContent = quizIndex + 1;
+  document.getElementById('quiz-total').textContent = QUIZ_DATA.length;
+  document.getElementById('quiz-score').textContent = quizScore;
+  document.getElementById('quiz-progress').style.width = ((quizIndex) / QUIZ_DATA.length * 100) + '%';
+  document.getElementById('quiz-question').innerHTML = q.question;
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('quiz-feedback').className = 'feedback';
+  document.getElementById('quiz-next-wrap').style.display = 'none';
+
+  const stage = document.getElementById('quiz-stage');
+  const opts = document.getElementById('quiz-options');
+  stage.innerHTML = '';
+  opts.innerHTML = '';
+
+  if (q.type === 'compare' || q.type === 'compare-trick') {
+    const armLen = q.armLengths || [80, 80];
+    stage.innerHTML = `
+      <div class="compare-row">
+        ${q.angles.map((deg, i) => angleSvg(deg, armLen[i] || 80, ['A','B'][i])).join('')}
+      </div>
+    `;
+    opts.innerHTML = `
+      <button class="quiz-option" data-i="0"><div class="label">A</div><div>Aの方が大きい</div></button>
+      <button class="quiz-option" data-i="1"><div class="label">B</div><div>Bの方が大きい</div></button>
+    `;
+  } else if (q.type === 'identify') {
+    stage.innerHTML = `<div style="text-align:center;">${angleSvg(q.angles[0], 100, '?', true)}</div>`;
+    opts.innerHTML = q.options.map((o, i) =>
+      `<button class="quiz-option" data-i="${i}"><div>${o}</div></button>`
+    ).join('');
+  } else if (q.type === 'pickbig') {
+    opts.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    stage.innerHTML = '';
+    opts.innerHTML = q.angles.map((deg, i) =>
+      `<button class="quiz-option" data-i="${i}">${angleSvg(deg, 60, ['A','B','C','D'][i], false, true)}</button>`
+    ).join('');
+  }
+
+  opts.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.addEventListener('click', () => answerQuiz(parseInt(btn.dataset.i)));
+  });
+}
+
+function angleSvg(deg, armLen, label, big = false, mini = false) {
+  const size = mini ? 140 : (big ? 240 : 180);
+  const vbW = mini ? 200 : 200;
+  const vbH = mini ? 140 : 180;
+  const cx = mini ? 30 : 40;
+  const cy = mini ? 110 : 140;
+  const fixedEnd = { x: cx + armLen, y: cy };
+  const armP = polar(cx, cy, armLen, deg);
+  const arcR = Math.min(40, armLen * 0.5);
+  return `
+    <svg class="angle-svg" viewBox="0 0 ${vbW} ${vbH}" style="max-height:${size}px;">
+      <line x1="${cx}" y1="${cy}" x2="${fixedEnd.x}" y2="${fixedEnd.y}" stroke="#ff6b9d" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${cx}" y1="${cy}" x2="${armP.x}" y2="${armP.y}" stroke="#4ecdc4" stroke-width="5" stroke-linecap="round"/>
+      <path d="${describeArc(cx, cy, arcR, 0, deg)}" fill="rgba(255,217,61,0.5)" stroke="#ffb845" stroke-width="3"/>
+      <circle cx="${cx}" cy="${cy}" r="6" fill="#3d3d5c"/>
+      ${label ? `<text x="${vbW/2}" y="${vbH - 5}" text-anchor="middle" font-size="28" font-weight="900" fill="#ff6b9d">${label}</text>` : ''}
+    </svg>
+  `;
+}
+
+function answerQuiz(picked) {
+  const q = QUIZ_DATA[quizIndex];
+  const buttons = document.querySelectorAll('#quiz-options .quiz-option');
+  buttons.forEach(b => b.classList.add('disabled'));
+  const fb = document.getElementById('quiz-feedback');
+  if (picked === q.answer) {
+    quizScore++;
+    buttons[picked].classList.add('correct');
+    fb.className = 'feedback ok';
+    fb.textContent = '🎉 せいかい！ ' + q.explain;
+  } else {
+    buttons[picked].classList.add('wrong');
+    buttons[q.answer].classList.add('correct');
+    fb.className = 'feedback ng';
+    fb.textContent = '💡 おしい！ ' + q.explain;
+  }
+  document.getElementById('quiz-score').textContent = quizScore;
+  document.getElementById('quiz-next-wrap').style.display = 'flex';
+}
+
+function nextQuiz() {
+  quizIndex++;
+  if (quizIndex >= QUIZ_DATA.length) {
+    showResult();
+  } else {
+    showQuizQuestion();
+  }
+}
+
+function showResult() {
+  goto('result');
+  document.getElementById('final-score').textContent = quizScore;
+  let stars, msg;
+  if (quizScore === 5) {
+    stars = '⭐⭐⭐⭐⭐';
+    msg = 'パーフェクト！かど博士だね！';
+  } else if (quizScore >= 4) {
+    stars = '⭐⭐⭐⭐';
+    msg = 'すごい！よく分かっているね！';
+  } else if (quizScore >= 3) {
+    stars = '⭐⭐⭐';
+    msg = 'いいね！もう一回でかんぺきに！';
+  } else if (quizScore >= 2) {
+    stars = '⭐⭐';
+    msg = 'もう一度学習にもどってみよう！';
+  } else {
+    stars = '⭐';
+    msg = 'だいじょうぶ！何度もチャレンジしよう！';
+  }
+  document.getElementById('final-stars').textContent = stars;
+  document.getElementById('final-message').textContent = msg;
+}
+</script>
+</body>
+</html>
